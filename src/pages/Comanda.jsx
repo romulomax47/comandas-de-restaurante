@@ -5,6 +5,7 @@ import { abrirComanda } from "../services/comandasService";
 import ListaProdutos from "../components/ListaProdutos";
 import ResumoComanda from "../components/ResumoComanda";
 import { listarItensDaComanda } from "../services/itensService";
+import { criarLancamento } from "../services/lancamentosService";
 
 function Comanda() {
    const { mesaId } = useParams();
@@ -16,6 +17,7 @@ function Comanda() {
    const [produtos, setProdutos] = useState([]);
    const [carregando, setCarregando] = useState(true);
    const [cardapioVisivel, setCardapioVisivel] = useState(false);
+   const [mensagem, setMensagem] = useState("");
 
 
    const garcom = JSON.parse(localStorage.getItem("garcom"));
@@ -115,19 +117,25 @@ function Comanda() {
    }
 
    async function enviarParaCozinha() {
+      setMensagem("");
       if (!comanda || itensPedido.length === 0 || !garcom) {
          return;
       }
 
+      const lancamento = await criarLancamento(
+         comanda.id,
+         garcom.id
+      );
+
       const itensParaSalvar = itensPedido.map((item) => ({
          comanda_id: comanda.id,
+         lancamento_id: lancamento.id,
          produto_id: item.id,
          quantidade: item.quantidade,
          preco_unitario: Number(item.preco),
          status: "novo",
          lancado_por: garcom.id,
       }));
-
       const { error: erroItens } = await supabase
          .from("itens_pedido")
          .insert(itensParaSalvar);
@@ -170,10 +178,10 @@ function Comanda() {
 
       setComanda(comandaAtualizada);
       setItensPedido([]);
-
+      setCardapioVisivel(false);
       await carregarItensDaComanda(comanda.id);
 
-      alert("Itens enviados para a cozinha!");
+      setMensagem("Itens enviados para a cozinha com sucesso!");
    }
 
    useEffect(() => {
@@ -255,6 +263,12 @@ function Comanda() {
                produtos={produtos}
                adicionarProduto={adicionarProduto}
             />
+         )}
+
+         {mensagem && (
+            <p className="mensagem-sucesso">
+               {mensagem}
+            </p>
          )}
 
          <ResumoComanda
