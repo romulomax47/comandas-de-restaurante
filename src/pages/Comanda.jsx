@@ -6,6 +6,7 @@ import ListaProdutos from "../components/ListaProdutos";
 import ResumoComanda from "../components/ResumoComanda";
 import { listarItensDaComanda } from "../services/itensService";
 import { criarLancamento } from "../services/lancamentosService";
+import { gerarTicket } from "../services/impressaoService";
 
 function Comanda() {
    const { mesaId } = useParams();
@@ -135,8 +136,27 @@ function Comanda() {
          (item) => item.setor === "bar"
       );
 
-      console.log("Itens da cozinha:", itensCozinha);
-      console.log("Itens do bar:", itensBar);
+      const ticketCozinha = gerarTicket({
+         setor: "cozinha",
+         numeroMesa: mesaId,
+         lancamento,
+         garcom,
+         itens: itensCozinha,
+      });
+
+      const ticketBar = gerarTicket({
+         setor: "bar",
+         numeroMesa: mesaId,
+         lancamento,
+         garcom,
+         itens: itensBar,
+      });
+
+      console.log("TICKET COZINHA:");
+      console.log(ticketCozinha);
+
+      console.log("TICKET BAR:");
+      console.log(ticketBar);
 
       const itensParaSalvar = itensPedido.map((item) => ({
          comanda_id: comanda.id,
