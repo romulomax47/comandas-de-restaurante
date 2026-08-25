@@ -12,7 +12,7 @@ export async function listarItensDaComanda(comandaId) {
       produtos (
         nome
       ),
-      garcons!itens_pedido_lancado_por_fkey (
+      garcons!itens_pedido_garcom_id_fkey (
         nome
       )
     `)

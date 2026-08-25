@@ -5,7 +5,7 @@ export async function abrirComanda(mesaId, garcomId) {
     .from("comandas")
     .select(`
       *,
-      garcons!comandas_aberta_por_fkey (
+      garcons!comandas_garcom_id_fkey (
         id,
         nome
       )
@@ -32,7 +32,7 @@ export async function abrirComanda(mesaId, garcomId) {
     })
     .select(`
       *,
-      garcons!comandas_aberta_por_fkey (
+      garcons!comandas_garcom_id_fkey (
         id,
         nome
       )

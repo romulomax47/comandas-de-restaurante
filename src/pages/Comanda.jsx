@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { abrirComanda } from "../services/comandasService";
 import ListaProdutos from "../components/ListaProdutos";
 import ResumoComanda from "../components/ResumoComanda";
+import { listarItensDaComanda } from "../services/itensService";
 
 function Comanda() {
    const { mesaId } = useParams();
@@ -97,27 +98,15 @@ function Comanda() {
    }
 
    async function carregarItensDaComanda(comandaId) {
-      const { data, error } = await supabase
-         .from("itens_pedido")
-         .select(`
-        id,
-        quantidade,
-        preco_unitario,
-        status,
-        observacao,
-        produtos (
-          nome
-        )
-      `)
-         .eq("comanda_id", comandaId)
-         .order("id");
+      try {
+         const itens = await listarItensDaComanda(comandaId);
 
-      if (error) {
+         console.log("ITENS DA COMANDA:", itens);
+
+         setItensLancados(itens);
+      } catch (error) {
          console.error("Erro ao carregar itens:", error);
-         return;
       }
-
-      setItensLancados(data ?? []);
    }
 
    async function enviarParaCozinha() {
@@ -206,6 +195,9 @@ function Comanda() {
                   .eq("ativo", true)
                   .order("nome");
 
+            console.log("PRODUTOS DO BANCO:", produtosData);
+            console.log("ERRO PRODUTOS:", produtosError);
+
             if (produtosError) {
                console.error(
                   "Erro ao carregar produtos:",
@@ -218,6 +210,10 @@ function Comanda() {
             await carregarItensDaComanda(dadosComanda.id);
          } catch (error) {
             console.error("Erro ao iniciar comanda:", error);
+            console.log("ERRO SERIALIZADO:", JSON.stringify(error, null, 2));
+            console.log("CODE:", error?.code);
+            console.log("MESSAGE:", error?.message);
+            console.log("DETAILS:", error?.details);
          } finally {
             setCarregando(false);
          }
