@@ -4,7 +4,7 @@ function ResumoComanda({
   itensPedido,
   itensLancados,
   totalNovoPedido,
-  enviarParaCozinha,
+  enviarPedido,
   aumentarQuantidade,
   diminuirQuantidade,
   removerItem,
@@ -37,9 +37,9 @@ function ResumoComanda({
         type="button"
         className="botao-enviar"
         disabled={itensPedido.length === 0}
-        onClick={enviarParaCozinha}
+        onClick={enviarPedido}
       >
-        Enviar para cozinha
+        Enviar pedido
       </button>
 
       <hr />

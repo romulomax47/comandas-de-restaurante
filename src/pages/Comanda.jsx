@@ -116,7 +116,7 @@ function Comanda() {
       }
    }
 
-   async function enviarParaCozinha() {
+   async function enviarPedido() {
       setMensagem("");
       if (!comanda || itensPedido.length === 0 || !garcom) {
          return;
@@ -286,7 +286,7 @@ function Comanda() {
             itensPedido={itensPedido}
             itensLancados={itensLancados}
             totalNovoPedido={totalNovoPedido}
-            enviarParaCozinha={enviarParaCozinha}
+            enviarPedido={enviarPedido}
             aumentarQuantidade={aumentarQuantidade}
             diminuirQuantidade={diminuirQuantidade}
             removerItem={removerItem}
