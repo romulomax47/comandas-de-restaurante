@@ -1,41 +1,114 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const mesas = [
-  { id: 1, numero: 1, status: "livre" },
-  { id: 2, numero: 2, status: "ocupada" },
-  { id: 3, numero: 3, status: "livre" },
-  { id: 4, numero: 4, status: "ocupada" },
-  { id: 5, numero: 5, status: "livre" },
-  { id: 6, numero: 6, status: "livre" },
-];
+import { buscarOuCriarMesa } from "../services/mesasService";
 
 function Home() {
+
   const navigate = useNavigate();
+  const garcom = JSON.parse(localStorage.getItem("garcom"));
+
+  const [numeroMesa, setNumeroMesa] = useState("");
+  const [buscandoMesa, setBuscandoMesa] = useState(false);
+  const [mensagem, setMensagem] = useState("");
+
+
+
+  async function acessarMesa() {
+    setMensagem("");
+
+    try {
+      setBuscandoMesa(true);
+
+      const mesa = await buscarOuCriarMesa(numeroMesa);
+
+      navigate(`/comanda/${mesa.numero}`);
+    } catch (error) {
+      console.error("Erro ao acessar mesa:", error);
+
+      setMensagem(
+        error.message || "Não foi possível acessar a mesa."
+      );
+    } finally {
+      setBuscandoMesa(false);
+    }
+
+  }
+
+
+
 
   return (
-    <main className="app">
-      <header className="topo">
-        <div>
-          <p className="subtitulo">MVP de comandas</p>
-          <h1>Mesas do restaurante</h1>
-        </div>
-      </header>
+    <section className="acesso-mesa-pdv">
+      <div className="usuario-logado">
+        <span>Garçom</span>
+        <strong>{garcom?.nome}</strong>
+      </div>
 
-      <section className="grade-mesas">
-        {mesas.map((mesa) => (
+      <p className="subtitulo">Acesso rápido</p>
+      <h1>Digite o número da mesa</h1>
+
+      <div className="visor-mesa">
+        {numeroMesa || "—"}
+      </div>
+
+      <div className="teclado-numerico">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((numero) => (
           <button
-            key={mesa.id}
+            key={numero}
             type="button"
-            className={`mesa mesa-${mesa.status}`}
-            onClick={() => navigate(`/pedido/${mesa.id}`)}
+            onClick={() =>
+              setNumeroMesa((valorAtual) => `${valorAtual}${numero}`)
+            }
           >
-            <strong>Mesa {mesa.numero}</strong>
-            <span>{mesa.status === "livre" ? "Livre" : "Ocupada"}</span>
+            {numero}
           </button>
         ))}
-      </section>
-    </main>
+
+        <button
+          type="button"
+          className="botao-limpar"
+          onClick={() => {
+            setNumeroMesa("");
+            setMensagem("");
+          }}
+        >
+          Limpar
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            setNumeroMesa((valorAtual) => `${valorAtual}0`)
+          }
+        >
+          0
+        </button>
+
+        <button
+          type="button"
+          className="botao-entrar"
+          disabled={buscandoMesa || !numeroMesa}
+          onClick={acessarMesa}
+        >
+          {buscandoMesa ? "..." : "Entrar"}
+        </button>
+      </div>
+
+      {mensagem && (
+        <p className="mensagem-formulario">{mensagem}</p>
+      )}
+
+      <button
+        type="button"
+        onClick={() => {
+          localStorage.removeItem("garcom");
+          navigate("/login");
+        }}
+      >
+        Sair
+      </button>
+    </section>
   );
 }
-
 export default Home;

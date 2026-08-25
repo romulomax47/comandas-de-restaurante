@@ -8,7 +8,7 @@ function Cozinha() {
    useEffect(() => {
       async function carregarPedidos() {
          const { data, error } = await supabase
-            .from("pedidos")
+            .from("comanda")
             .select(`
         id,
         mesa_id,
@@ -52,7 +52,7 @@ function Cozinha() {
 
    async function atualizarStatus(pedidoId, novoStatus) {
       const { error } = await supabase
-         .from("pedidos")
+         .from("comanda")
          .update({ status: novoStatus })
          .eq("id", pedidoId);
 

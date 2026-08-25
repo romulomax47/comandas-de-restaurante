@@ -1,16 +1,18 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
-import Pedido from "./pages/Pedido";
+import Comanda from "./pages/Comanda";
 import Cozinha from "./pages/Cozinha";
+import Login from "./pages/Login";
 import "./App.css";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/pedido/:mesaId" element={<Pedido />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/comanda/:mesaId" element={<Comanda />} />
         <Route path="/cozinha" element={<Cozinha />} />
+        <Route path="/" element={<Login />} />
       </Routes>
     </BrowserRouter>
   );
