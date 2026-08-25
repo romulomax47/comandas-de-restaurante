@@ -127,6 +127,17 @@ function Comanda() {
          garcom.id
       );
 
+      const itensCozinha = itensPedido.filter(
+         (item) => item.setor === "cozinha"
+      );
+
+      const itensBar = itensPedido.filter(
+         (item) => item.setor === "bar"
+      );
+
+      console.log("Itens da cozinha:", itensCozinha);
+      console.log("Itens do bar:", itensBar);
+
       const itensParaSalvar = itensPedido.map((item) => ({
          comanda_id: comanda.id,
          lancamento_id: lancamento.id,
