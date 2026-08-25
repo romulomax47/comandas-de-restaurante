@@ -15,6 +15,8 @@ function Comanda() {
    const [itensLancados, setItensLancados] = useState([]);
    const [produtos, setProdutos] = useState([]);
    const [carregando, setCarregando] = useState(true);
+   const [cardapioVisivel, setCardapioVisivel] = useState(false);
+
 
    const garcom = JSON.parse(localStorage.getItem("garcom"));
 
@@ -39,6 +41,7 @@ function Comanda() {
                   : item
             )
          );
+         setCardapioVisivel(false);
 
          return;
       }
@@ -50,6 +53,8 @@ function Comanda() {
             quantidade: 1,
          },
       ]);
+      setCardapioVisivel(false);
+
    }
 
    function aumentarQuantidade(produtoId) {
@@ -195,8 +200,6 @@ function Comanda() {
                   .eq("ativo", true)
                   .order("nome");
 
-            console.log("PRODUTOS DO BANCO:", produtosData);
-            console.log("ERRO PRODUTOS:", produtosError);
 
             if (produtosError) {
                console.error(
@@ -210,10 +213,7 @@ function Comanda() {
             await carregarItensDaComanda(dadosComanda.id);
          } catch (error) {
             console.error("Erro ao iniciar comanda:", error);
-            console.log("ERRO SERIALIZADO:", JSON.stringify(error, null, 2));
-            console.log("CODE:", error?.code);
-            console.log("MESSAGE:", error?.message);
-            console.log("DETAILS:", error?.details);
+
          } finally {
             setCarregando(false);
          }
@@ -250,10 +250,12 @@ function Comanda() {
             </strong>
          </header>
 
-         <ListaProdutos
-            produtos={produtos}
-            adicionarProduto={adicionarProduto}
-         />
+         {cardapioVisivel && (
+            <ListaProdutos
+               produtos={produtos}
+               adicionarProduto={adicionarProduto}
+            />
+         )}
 
          <ResumoComanda
             itensPedido={itensPedido}
@@ -263,6 +265,7 @@ function Comanda() {
             aumentarQuantidade={aumentarQuantidade}
             diminuirQuantidade={diminuirQuantidade}
             removerItem={removerItem}
+            mostrarCardapio={() => setCardapioVisivel(true)}
          />
       </div>
    );

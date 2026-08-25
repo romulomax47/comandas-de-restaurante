@@ -8,9 +8,17 @@ function ResumoComanda({
   aumentarQuantidade,
   diminuirQuantidade,
   removerItem,
+  mostrarCardapio,
 }) {
   return (
     <aside className="comanda">
+      <button
+        type="button"
+        className="botao-novo-produto"
+        onClick={mostrarCardapio}
+      >
+        + Adicionar produtos
+      </button>
       <h2>Novo lançamento</h2>
 
       <ItensComanda
