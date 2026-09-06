@@ -9,16 +9,21 @@ function ResumoComanda({
   diminuirQuantidade,
   removerItem,
   mostrarCardapio,
+  imprimirConta,
+  statusComanda,
 }) {
   return (
     <aside className="comanda">
-      <button
-        type="button"
-        className="botao-novo-produto"
-        onClick={mostrarCardapio}
-      >
-        + Adicionar produtos
-      </button>
+      {statusComanda === "aberta" && (
+        <button
+          type="button"
+          className="botao-novo-produto"
+          onClick={mostrarCardapio}
+        >
+          + Adicionar produtos
+        </button>
+      )}
+
       <h2>Novo lançamento</h2>
 
       <ItensComanda
@@ -70,6 +75,20 @@ function ResumoComanda({
             </div>
           </div>
         ))
+      )}
+
+      {statusComanda === "aberta" ? (
+        <button
+          type="button"
+          className="botao-imprimir-conta"
+          onClick={imprimirConta}
+        >
+          Imprimir conta
+        </button>
+      ) : (
+        <p className="aviso-fechamento">
+          🔒 Conta emitida — mesa aguardando pagamento.
+        </p>
       )}
     </aside>
   );

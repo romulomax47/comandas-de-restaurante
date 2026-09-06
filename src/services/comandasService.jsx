@@ -60,3 +60,27 @@ export async function atualizarTotalComanda(comandaId, total) {
 
   return data;
 }
+
+export async function solicitarFechamento(comandaId, mesaId) {
+  const { error: erroComanda } = await supabase
+    .from("comandas")
+    .update({
+      status: "fechamento",
+    })
+    .eq("id", comandaId);
+
+  if (erroComanda) {
+    throw erroComanda;
+  }
+
+  const { error: erroMesa } = await supabase
+    .from("mesas")
+    .update({
+      status: "fechamento",
+    })
+    .eq("id", mesaId);
+
+  if (erroMesa) {
+    throw erroMesa;
+  }
+}

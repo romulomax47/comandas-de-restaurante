@@ -7,6 +7,9 @@ import ResumoComanda from "../components/ResumoComanda";
 import { listarItensDaComanda } from "../services/itensService";
 import { criarLancamento } from "../services/lancamentosService";
 import { gerarTicket } from "../services/impressaoService";
+import { solicitarFechamento } from "../services/comandasService";
+
+
 
 function Comanda() {
    const { mesaId } = useParams();
@@ -15,10 +18,11 @@ function Comanda() {
    const [comanda, setComanda] = useState(null);
    const [itensPedido, setItensPedido] = useState([]);
    const [itensLancados, setItensLancados] = useState([]);
-   const [produtos, setProdutos] = useState([]);
+   //const [produtos, setProdutos] = useState([]);
    const [carregando, setCarregando] = useState(true);
    const [cardapioVisivel, setCardapioVisivel] = useState(false);
    const [mensagem, setMensagem] = useState("");
+   const [mesa, setMesa] = useState(null);
 
 
    const garcom = JSON.parse(localStorage.getItem("garcom"));
@@ -225,29 +229,24 @@ function Comanda() {
          try {
             setCarregando(true);
 
+            const { data: mesaEncontrada, error: erroMesa } = await supabase
+               .from("mesas")
+               .select("id, numero, status")
+               .eq("numero", Number(mesaId))
+               .single();
+
+            if (erroMesa) {
+               throw erroMesa;
+            }
+
+            setMesa(mesaEncontrada);
+
             const dadosComanda = await abrirComanda(
-               Number(mesaId),
+               mesaEncontrada.id,
                garcom.id
             );
 
             setComanda(dadosComanda);
-
-            const { data: produtosData, error: produtosError } =
-               await supabase
-                  .from("produtos")
-                  .select("*")
-                  .eq("ativo", true)
-                  .order("nome");
-
-
-            if (produtosError) {
-               console.error(
-                  "Erro ao carregar produtos:",
-                  produtosError
-               );
-            } else {
-               setProdutos(produtosData ?? []);
-            }
 
             await carregarItensDaComanda(dadosComanda.id);
          } catch (error) {
@@ -259,6 +258,7 @@ function Comanda() {
       }
 
       iniciar();
+
    }, [mesaId]);
 
    if (carregando) {
@@ -267,6 +267,41 @@ function Comanda() {
             <p>Carregando comanda...</p>
          </main>
       );
+   }
+
+   async function imprimirConta() {
+      if (!comanda || !mesa) {
+         return;
+      }
+
+      try {
+         console.log("RESUMO DA CONTA");
+
+         console.log({
+            mesa: mesa.numero,
+            comanda: comanda.id,
+            itens: itensLancados,
+            total: comanda.total,
+            garcom: garcom?.nome,
+         });
+
+         await solicitarFechamento(
+            comanda.id,
+            mesa.id
+         );
+
+         setComanda({
+            ...comanda,
+            status: "fechamento",
+         });
+
+         setMesa({
+            ...mesa,
+            status: "fechamento",
+         });
+      } catch (error) {
+         console.error("Erro ao solicitar fechamento:", error);
+      }
    }
 
    return (
@@ -311,6 +346,8 @@ function Comanda() {
             diminuirQuantidade={diminuirQuantidade}
             removerItem={removerItem}
             mostrarCardapio={() => setCardapioVisivel(true)}
+            imprimirConta={imprimirConta}
+            statusComanda={comanda?.status}
          />
       </div>
    );
