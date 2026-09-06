@@ -18,7 +18,7 @@ function Comanda() {
    const [comanda, setComanda] = useState(null);
    const [itensPedido, setItensPedido] = useState([]);
    const [itensLancados, setItensLancados] = useState([]);
-   //const [produtos, setProdutos] = useState([]);
+   const [produtos, setProdutos] = useState([]);
    const [carregando, setCarregando] = useState(true);
    const [cardapioVisivel, setCardapioVisivel] = useState(false);
    const [mensagem, setMensagem] = useState("");
@@ -205,7 +205,7 @@ function Comanda() {
             status: "ocupada",
             comanda_ativa_id: comanda.id,
          })
-         .eq("id", Number(mesaId));
+         .eq("id", mesaId);
 
       if (erroMesa) {
          console.error("Erro ao atualizar mesa:", erroMesa);
@@ -247,6 +247,18 @@ function Comanda() {
             );
 
             setComanda(dadosComanda);
+            //Carrega produtos ativos
+            const { data: produtosData, error: produtosError } = await supabase
+               .from("produtos")
+               .select("*")
+               .eq("ativo", true)
+               .order("nome");
+
+            if (produtosError) {
+               console.error("Erro ao carregar produtos:", produtosError);
+            } else {
+               setProdutos(produtosData ?? []);
+            }
 
             await carregarItensDaComanda(dadosComanda.id);
          } catch (error) {
