@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import Comanda from "./pages/Comanda";
 import Cozinha from "./pages/Cozinha";
 import Login from "./pages/Login";
+import Caixa from "./pages/Caixa";
 import "./App.css";
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
         <Route path="/comanda/:mesaId" element={<Comanda />} />
         <Route path="/cozinha" element={<Cozinha />} />
         <Route path="/" element={<Login />} />
+        <Route path="/caixa" element={<Caixa />} />
       </Routes>
     </BrowserRouter>
   );
