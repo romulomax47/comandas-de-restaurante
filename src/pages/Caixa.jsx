@@ -96,7 +96,50 @@ function Caixa() {
    }
 
    useEffect(() => {
-      carregarComandas();
+      let ativo = true;
+
+      async function carregarInicial() {
+         const { data, error } = await supabase
+            .from("comandas")
+            .select(`
+            id,
+            mesa_id,
+            total,
+            status,
+            fechada_em,
+            mesas!pedidos_mesa_id_fkey (
+               id,
+               numero
+            ),
+            itens_pedido (
+               id,
+               quantidade,
+               preco_unitario,
+               produtos (
+                  nome
+               )
+            )
+         `)
+            .eq("status", "fechamento")
+            .order("id", { ascending: true });
+
+         if (!ativo) return;
+
+         if (error) {
+            console.error("Erro ao carregar comandas:", error);
+            setCarregando(false);
+            return;
+         }
+
+         setComandas(data ?? []);
+         setCarregando(false);
+      }
+
+      carregarInicial();
+
+      return () => {
+         ativo = false;
+      };
    }, []);
 
    if (carregando) {
