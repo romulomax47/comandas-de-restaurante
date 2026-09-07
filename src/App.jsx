@@ -5,6 +5,7 @@ import Cozinha from "./pages/Cozinha";
 import Login from "./pages/Login";
 import Caixa from "./pages/Caixa";
 import ProdutosAdmin from "./pages/ProdutosAdmin";
+import GarconsAdmin from "./pages/GarconsAdmin";
 import "./App.css";
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/caixa" element={<Caixa />} />
         <Route path="/admin/produtos" element={<ProdutosAdmin />} />
+        <Route path="/admin/garcons" element={<GarconsAdmin />} />
       </Routes>
     </BrowserRouter>
   );
