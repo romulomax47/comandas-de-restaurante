@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 function Caixa() {
    const [comandas, setComandas] = useState([]);
    const [carregando, setCarregando] = useState(true);
+   const [formasPagamento, setFormasPagamento] = useState({});
 
    async function carregarComandas() {
       setCarregando(true);
@@ -43,6 +44,13 @@ function Caixa() {
    }
 
    async function finalizarPagamento(comanda) {
+
+      const formaPagamento = formasPagamento[comanda.id];
+
+      if (!formaPagamento) {
+         alert("Selecione a forma de pagamento.");
+         return;
+      }
       const confirmar = window.confirm(
          `Confirmar pagamento da Mesa ${comanda.mesas?.numero}?`
       );
@@ -56,6 +64,7 @@ function Caixa() {
          .update({
             status: "fechada",
             fechada_em: new Date().toISOString(),
+            forma_pagamento: formaPagamento,
          })
          .eq("id", comanda.id);
 
@@ -78,6 +87,12 @@ function Caixa() {
       }
 
       await carregarComandas();
+   }
+   function selecionarFormaPagamento(comandaId, forma) {
+      setFormasPagamento((formasAtuais) => ({
+         ...formasAtuais,
+         [comandaId]: forma,
+      }));
    }
 
    useEffect(() => {
@@ -128,6 +143,30 @@ function Caixa() {
                      <strong>
                         Total: R$ {Number(comanda.total ?? 0).toFixed(2)}
                      </strong>
+
+                     <div className="formas-pagamento">
+                        <p>Forma de pagamento</p>
+
+                        {["dinheiro", "pix", "credito", "debito"].map((forma) => (
+                           <button
+                              key={forma}
+                              type="button"
+                              className={
+                                 formasPagamento[comanda.id] === forma
+                                    ? "forma-pagamento selecionada"
+                                    : "forma-pagamento"
+                              }
+                              onClick={() =>
+                                 selecionarFormaPagamento(comanda.id, forma)
+                              }
+                           >
+                              {forma === "dinheiro" && "Dinheiro"}
+                              {forma === "pix" && "Pix"}
+                              {forma === "credito" && "Crédito"}
+                              {forma === "debito" && "Débito"}
+                           </button>
+                        ))}
+                     </div>
 
                      <button
                         type="button"

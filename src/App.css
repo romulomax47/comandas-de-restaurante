@@ -416,3 +416,25 @@ button {
   color: #166534;
   font-weight: 600;
 }
+
+.formas-pagamento {
+  margin: 20px 0;
+}
+
+.formas-pagamento p {
+  font-weight: bold;
+}
+
+.forma-pagamento {
+  margin: 4px;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+}
+
+.forma-pagamento.selecionada {
+  background: #111827;
+  color: white;
+}
