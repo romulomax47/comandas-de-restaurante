@@ -4,6 +4,7 @@ import Comanda from "./pages/Comanda";
 import Cozinha from "./pages/Cozinha";
 import Login from "./pages/Login";
 import Caixa from "./pages/Caixa";
+import ProdutosAdmin from "./pages/ProdutosAdmin";
 import "./App.css";
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/cozinha" element={<Cozinha />} />
         <Route path="/" element={<Login />} />
         <Route path="/caixa" element={<Caixa />} />
+        <Route path="/admin/produtos" element={<ProdutosAdmin />} />
       </Routes>
     </BrowserRouter>
   );
