@@ -35,7 +35,7 @@ function Login() {
 
       const { data: garcom, error } = await supabase
          .from("garcons")
-         .select("id, nome, ativo")
+         .select("id, nome, ativo, funcao")
          .eq("chave", chave)
          .eq("ativo", true)
          .maybeSingle();
