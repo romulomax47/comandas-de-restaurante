@@ -14,7 +14,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/home" element={<Home />} />
+        <Route path="/home" element={<RotaProtegida
+          funcoesPermitidas={["garcom", "proprietario"]}
+        >
+          <Home />
+        </RotaProtegida>} />
         <Route path="/comanda/:mesaId" element={<RotaProtegida
           funcoesPermitidas={[
             "garcom",
@@ -23,7 +27,11 @@ function App() {
         >
           <Comanda />
         </RotaProtegida>} />
-        <Route path="/cozinha" element={<Cozinha />} />
+        <Route path="/cozinha" element={<RotaProtegida
+          funcoesPermitidas={["cozinha", "proprietario"]}
+        >
+          <Cozinha />
+        </RotaProtegida>} />
         <Route path="/" element={<Login />} />
         <Route path="/caixa" element={<RotaProtegida
           funcoesPermitidas={[
@@ -38,7 +46,11 @@ function App() {
         >
           <ProdutosAdmin />
         </RotaProtegida>} />
-        <Route path="/admin/garcons" element={<GarconsAdmin />} />
+        <Route path="/admin/garcons" element={<RotaProtegida
+          funcoesPermitidas={["proprietario"]}
+        >
+          <GarconsAdmin />
+        </RotaProtegida>} />
         <Route path="/admin" element={<RotaProtegida
           funcoesPermitidas={["proprietario"]}
         >

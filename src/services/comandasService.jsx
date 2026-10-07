@@ -1,49 +1,11 @@
 import { supabase } from "../lib/supabase";
 
-export async function abrirComanda(mesaId, garcomId) {
-  const { data: comandaExistente, error: erroBusca } = await supabase
-    .from("comandas")
-    .select(`
-      *,
-      garcons!comandas_garcom_id_fkey (
-        id,
-        nome
-      )
-    `)
-    .eq("mesa_id", mesaId)
-    .eq("status", "aberta")
-    .maybeSingle();
-
-  if (erroBusca) {
-    throw erroBusca;
-  }
-
-  if (comandaExistente) {
-    return comandaExistente;
-  }
-
-  const { data: novaComanda, error: erroCriacao } = await supabase
-    .from("comandas")
-    .insert({
-      mesa_id: mesaId,
-      status: "aberta",
-      total: 0,
-      aberta_por: garcomId,
-    })
-    .select(`
-      *,
-      garcons!comandas_garcom_id_fkey (
-        id,
-        nome
-      )
-    `)
-    .single();
-
-  if (erroCriacao) {
-    throw erroCriacao;
-  }
-
-  return novaComanda;
+export async function abrirComanda(mesaId) {
+  const { data, error } = await supabase.rpc("obter_ou_abrir_comanda", {
+    p_mesa_id: mesaId,
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function atualizarTotalComanda(comandaId, total) {
@@ -61,26 +23,22 @@ export async function atualizarTotalComanda(comandaId, total) {
   return data;
 }
 
-export async function solicitarFechamento(comandaId, mesaId) {
-  const { error: erroComanda } = await supabase
-    .from("comandas")
-    .update({
-      status: "fechamento",
-    })
-    .eq("id", comandaId);
+export async function solicitarFechamento(comandaId) {
+  const { error } = await supabase.rpc("solicitar_fechamento_atomico", {
+    p_comanda_id: comandaId,
+  });
+  if (error) throw error;
+}
 
-  if (erroComanda) {
-    throw erroComanda;
-  }
-
-  const { error: erroMesa } = await supabase
-    .from("mesas")
-    .update({
-      status: "fechamento",
-    })
-    .eq("id", mesaId);
-
-  if (erroMesa) {
-    throw erroMesa;
-  }
+export async function lancarPedido(comandaId, itens) {
+  const { data, error } = await supabase.rpc("lancar_pedido", {
+    p_comanda_id: comandaId,
+    p_itens: itens.map((item) => ({
+      produto_id: item.id,
+      quantidade: item.quantidade,
+      observacao: item.observacao || null,
+    })),
+  });
+  if (error) throw error;
+  return data;
 }

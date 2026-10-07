@@ -7,38 +7,9 @@ export async function buscarOuCriarMesa(numero) {
     throw new Error("Número de mesa inválido.");
   }
 
-  const { data: mesaExistente, error: erroBusca } = await supabase
-    .from("mesas")
-    .select("id, numero, status, comanda_ativa_id")
-    .eq("numero", numeroMesa)
-    .maybeSingle();
-
-  if (erroBusca) {
-    throw erroBusca;
-  }
-
-  if (mesaExistente) {
-    if (mesaExistente.status === "fechamento") {
-      throw new Error(
-        `A Mesa ${numeroMesa} está em fechamento.`
-      );
-    }
-
-    return mesaExistente;
-  }
-
-  const { data: novaMesa, error: erroCriacao } = await supabase
-    .from("mesas")
-    .insert({
-      numero: numeroMesa,
-      status: "livre",
-    })
-    .select("id, numero, status, comanda_ativa_id")
-    .single();
-
-  if (erroCriacao) {
-    throw erroCriacao;
-  }
-
-  return novaMesa;
+  const { data, error } = await supabase.rpc("buscar_ou_criar_mesa", {
+    p_numero: numeroMesa,
+  });
+  if (error) throw error;
+  return data;
 }

@@ -31,9 +31,9 @@ function Admin() {
                className="card-admin"
                onClick={() => navigate("/admin/garcons")}
             >
-               <strong>Garçons</strong>
+               <strong>Usuários</strong>
                <span>
-                  Cadastrar equipe, alterar chave e ativar/desativar
+                  Gerenciar equipe, função, e-mail, senha e PIN
                </span>
             </button>
 

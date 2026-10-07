@@ -27,17 +27,12 @@ function ProdutosAdmin() {
       setMensagem("");
    }
 
-   async function carregarProdutos() {
-      try {
-         const dados = await listarTodosProdutos();
-         setProdutos(dados);
-      } catch (error) {
-         console.error("Erro ao carregar produtos:", error);
-      }
-   }
-
    useEffect(() => {
-      carregarProdutos();
+      let ativo = true;
+      listarTodosProdutos()
+         .then((dados) => { if (ativo) setProdutos(dados); })
+         .catch(() => { if (ativo) setMensagem("Não foi possível carregar os produtos."); });
+      return () => { ativo = false; };
    }, []);
 
    async function salvarProduto(evento) {

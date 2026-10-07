@@ -1,142 +1,78 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
+async function buscarItensCozinha() {
+  const { data, error } = await supabase
+    .from("itens_pedido")
+    .select(`
+      id, quantidade, status, observacao,
+      produtos!inner(nome, setor),
+      comandas!inner(id, mesa_id, mesas(numero)),
+      lancamentos(criado_em)
+    `)
+    .eq("produtos.setor", "cozinha")
+    .in("status", ["novo", "em_preparo", "pronto"])
+    .order("id", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 function Cozinha() {
-   const [pedidos, setPedidos] = useState([]);
-   const [carregando, setCarregando] = useState(true);
+  const [itens, setItens] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [mensagem, setMensagem] = useState("");
 
-   useEffect(() => {
-      async function carregarPedidos() {
-         const { data, error } = await supabase
-            .from("comanda")
-            .select(`
-        id,
-        mesa_id,
-        status,
-        total,
-        observacao,
-        criado_em,
-        itens_pedido (
-          id,
-          quantidade,
-          preco_unitario,
-          produtos (
-            nome
-          )
-        )
-      `)
-            .order("criado_em", { ascending: true });
+  useEffect(() => {
+    let ativo = true;
+    buscarItensCozinha()
+      .then((dados) => { if (ativo) setItens(dados); })
+      .catch(() => { if (ativo) setMensagem("Não foi possível carregar a cozinha."); })
+      .finally(() => { if (ativo) setCarregando(false); });
 
-         console.log("Pedidos completos:", data);
-         console.log("Erro ao carregar pedidos:", error);
+    const canal = supabase.channel("cozinha-itens")
+      .on("postgres_changes", { event: "*", schema: "public", table: "itens_pedido" }, async () => {
+        const dados = await buscarItensCozinha();
+        if (ativo) setItens(dados);
+      }).subscribe();
+    return () => { ativo = false; supabase.removeChannel(canal); };
+  }, []);
 
-         if (error) {
-            setCarregando(false);
-            return;
-         }
+  async function atualizarStatus(itemId, status) {
+    const { error } = await supabase.from("itens_pedido").update({ status }).eq("id", itemId);
+    if (error) {
+      setMensagem("Não foi possível atualizar o item.");
+      return;
+    }
+    setItens((atuais) => atuais.map((item) => item.id === itemId ? { ...item, status } : item));
+  }
 
-         setPedidos(data ?? []);
-         setCarregando(false);
-      }
+  if (carregando) return <main className="app"><p>Carregando pedidos...</p></main>;
 
-      carregarPedidos();
-   }, []);
-
-   if (carregando) {
-      return (
-         <main className="app">
-            <p>Carregando pedidos...</p>
-         </main>
-      );
-   }
-
-   async function atualizarStatus(pedidoId, novoStatus) {
-      const { error } = await supabase
-         .from("comanda")
-         .update({ status: novoStatus })
-         .eq("id", pedidoId);
-
-      if (error) {
-         console.error("Erro ao atualizar status:", error);
-         alert("Não foi possível atualizar o pedido.");
-         return;
-      }
-
-      setPedidos((pedidosAtuais) =>
-         pedidosAtuais.map((pedido) =>
-            pedido.id === pedidoId
-               ? { ...pedido, status: novoStatus }
-               : pedido
-         )
-      );
-   }
-
-
-
-   return (
-      <main className="app">
-         <header className="topo-pedido">
-            <div>
-               <p className="subtitulo">Operação</p>
-               <h1>Tela da cozinha</h1>
-            </div>
-         </header>
-
-         {pedidos.length === 0 ? (
-            <p>Nenhum pedido aguardando preparo.</p>
-         ) : (
-            <section className="grade-pedidos">
-               {pedidos.map((pedido) => (
-                  <article className="pedido-cozinha" key={pedido.id}>
-                     <div className="pedido-cabecalho">
-                        <div>
-                           <small>Pedido #{pedido.id}</small>
-                           <h2>Mesa {pedido.mesa_id}</h2>
-                        </div>
-
-                        <span className={`status status-${pedido.status}`}>
-                           {pedido.status}
-                        </span>
-                     </div>
-
-                     <div className="itens-cozinha">
-                        {pedido.itens_pedido.map((item) => (
-                           <p key={item.id}>
-                              {item.quantidade}x {item.produtos?.nome}
-                           </p>
-                        ))}
-                     </div>
-
-                     <strong>Total: R$ {Number(pedido.total).toFixed(2)}</strong>
-                     <div className="acoes-pedido">
-                        {pedido.status === "novo" && (
-                           <button
-                              type="button"
-                              onClick={() => atualizarStatus(pedido.id, "em_preparo")}
-                           >
-                              Iniciar preparo
-                           </button>
-                        )}
-
-                        {pedido.status === "em_preparo" && (
-                           <button
-                              type="button"
-                              onClick={() => atualizarStatus(pedido.id, "pronto")}
-                           >
-                              Marcar como pronto
-                           </button>
-                        )}
-
-                        {pedido.status === "pronto" && (
-                           <span>✅ Pedido pronto</span>
-                        )}
-                     </div>
-                  </article>
-               ))}
-            </section>
-         )}
-      </main>
-   );
+  return (
+    <main className="app">
+      <header className="topo-pedido"><div><p className="subtitulo">Operação</p><h1>Tela da cozinha</h1></div></header>
+      {mensagem && <p className="mensagem-formulario">{mensagem}</p>}
+      {itens.length === 0 ? <p>Nenhum item aguardando preparo.</p> : (
+        <section className="grade-pedidos">
+          {itens.map((item) => (
+            <article className="pedido-cozinha" key={item.id}>
+              <div className="pedido-cabecalho"><div><small>Item #{item.id}</small>
+                <h2>Mesa {item.comandas?.mesas?.numero ?? item.comandas?.mesa_id}</h2></div>
+                <span className={`status status-${item.status}`}>{item.status}</span>
+              </div>
+              <p>{item.quantidade}x {item.produtos?.nome}</p>
+              {item.observacao && <p>Obs.: {item.observacao}</p>}
+              <div className="acoes-pedido">
+                {item.status === "novo" && <button type="button" onClick={() => atualizarStatus(item.id, "em_preparo")}>Iniciar preparo</button>}
+                {item.status === "em_preparo" && <button type="button" onClick={() => atualizarStatus(item.id, "pronto")}>Marcar como pronto</button>}
+                {item.status === "pronto" && <button type="button" onClick={() => atualizarStatus(item.id, "entregue")}>Marcar como entregue</button>}
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+    </main>
+  );
 }
 
 export default Cozinha;

@@ -3,7 +3,29 @@ import { supabase } from "../lib/supabase";
 import {
    listarPagamentos,
    registrarPagamento,
+   finalizarComanda,
 } from "../services/pagamentosService";
+import { calcularResumoPagamento, validarPagamento } from "../domain/financeiro";
+
+async function buscarDadosCaixa() {
+   const { data, error } = await supabase
+      .from("comandas")
+      .select(`
+         id, mesa_id, total, desconto, status, fechada_em,
+         mesas!pedidos_mesa_id_fkey (id, numero),
+         itens_pedido (id, quantidade, preco_unitario, produtos (nome))
+      `)
+      .eq("status", "fechamento")
+      .order("id", { ascending: true });
+   if (error) throw error;
+
+   const comandas = data ?? [];
+   const pares = await Promise.all(comandas.map(async (comanda) => [
+      comanda.id,
+      await listarPagamentos(comanda.id),
+   ]));
+   return { comandas, pagamentos: Object.fromEntries(pares) };
+}
 
 function Caixa() {
 
@@ -13,47 +35,6 @@ function Caixa() {
    const [pagamentos, setPagamentos] = useState({});
    const [valoresPagamento, setValoresPagamento] = useState({});
    const [formasPagamento, setFormasPagamento] = useState({});
-
-   async function carregarComandas() {
-      setCarregando(true);
-
-      const { data, error } = await supabase
-         .from("comandas")
-         .select(`
-        id,
-        mesa_id,
-        total,
-        status,
-        fechada_em,
-        mesas!pedidos_mesa_id_fkey (
-          id,
-          numero
-        ),
-        itens_pedido (
-          id,
-          quantidade,
-          preco_unitario,
-          produtos (
-            nome
-          )
-        )
-      `)
-         .eq("status", "fechamento")
-         .order("id", { ascending: true });
-
-      if (error) {
-         console.error("Erro ao carregar comandas:", error);
-         setCarregando(false);
-         return;
-      }
-
-      setComandas(data ?? []);
-      setCarregando(false);
-
-      for (const comanda of data ?? []) {
-         await carregarPagamentos(comanda.id);
-      }
-   }
 
    async function carregarPagamentos(comandaId) {
       try {
@@ -77,18 +58,9 @@ function Caixa() {
          valoresPagamento[comanda.id]
       );
 
-      if (!forma) {
-         alert("Selecione a forma de pagamento.");
-         return;
-      }
-
-      if (!valor || valor <= 0) {
-         alert("Informe um valor válido.");
-         return;
-      }
-
-      if (valor > saldo) {
-         alert("O pagamento não pode ser maior que o saldo.");
+      const erroValidacao = validarPagamento(valor, saldo, forma);
+      if (erroValidacao) {
+         alert(erroValidacao);
          return;
       }
 
@@ -143,34 +115,15 @@ function Caixa() {
          return;
       }
 
-      const { error: erroComanda } = await supabase
-         .from("comandas")
-         .update({
-            status: "fechada",
-            fechada_em: new Date().toISOString(),
-            forma_pagamento: formaPagamento,
-         })
-         .eq("id", comanda.id);
-
-      if (erroComanda) {
-         console.error("Erro ao fechar comanda:", erroComanda);
-         return;
+      try {
+         await finalizarComanda(comanda.id, formaPagamento);
+         const dados = await buscarDadosCaixa();
+         setComandas(dados.comandas);
+         setPagamentos(dados.pagamentos);
+      } catch (error) {
+         console.error("Erro ao finalizar comanda:", error);
+         alert(error.message || "Não foi possível finalizar a conta.");
       }
-
-      const { error: erroMesa } = await supabase
-         .from("mesas")
-         .update({
-            status: "livre",
-            comanda_ativa_id: null,
-         })
-         .eq("id", comanda.mesa_id);
-
-      if (erroMesa) {
-         console.error("Erro ao liberar mesa:", erroMesa);
-         return;
-      }
-
-      await carregarComandas();
    }
 
    function selecionarFormaPagamento(comandaId, forma) {
@@ -186,44 +139,20 @@ function Caixa() {
    useEffect(() => {
       let ativo = true;
 
-      async function carregarInicial() {
-         const { data, error } = await supabase
-            .from("comandas")
-            .select(`
-            id,
-            mesa_id,
-            total,
-            status,
-            fechada_em,
-            mesas!pedidos_mesa_id_fkey (
-               id,
-               numero
-            ),
-            itens_pedido (
-               id,
-               quantidade,
-               preco_unitario,
-               produtos (
-                  nome
-               )
-            )
-         `)
-            .eq("status", "fechamento")
-            .order("id", { ascending: true });
-
-         if (!ativo) return;
-
-         if (error) {
-            console.error("Erro ao carregar comandas:", error);
-            setCarregando(false);
-            return;
-         }
-
-         setComandas(data ?? []);
-         setCarregando(false);
-      }
-
-      carregarInicial();
+      buscarDadosCaixa()
+         .then((dados) => {
+            if (ativo) {
+               setComandas(dados.comandas);
+               setPagamentos(dados.pagamentos);
+               setCarregando(false);
+            }
+         })
+         .catch((error) => {
+            if (ativo) {
+               console.error("Erro ao carregar caixa:", error);
+               setCarregando(false);
+            }
+         });
 
       return () => {
          ativo = false;
@@ -257,20 +186,8 @@ function Caixa() {
                   const pagamentosComanda =
                      pagamentos[comanda.id] ?? [];
 
-                  const totalPago = pagamentosComanda.reduce(
-                     (soma, pagamento) =>
-                        soma + Number(pagamento.valor),
-                     0
-                  );
-
-                  const totalLiquido =
-                     Number(comanda.total ?? 0) -
-                     Number(comanda.desconto ?? 0);
-
-                  const saldo = Math.max(
-                     totalLiquido - totalPago,
-                     0
-                  );
+                  const { totalPago, totalLiquido, saldo } =
+                     calcularResumoPagamento(comanda, pagamentosComanda);
 
                   return (
                      <article className="pedido-cozinha" key={comanda.id}>

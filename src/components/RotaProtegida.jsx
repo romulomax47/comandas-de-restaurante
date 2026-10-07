@@ -1,21 +1,23 @@
+import { useContext } from "react";
 import { Navigate } from "react-router-dom";
+import { AuthContext } from "../contexts/AuthContextObject";
+import { podeAcessar } from "../domain/autorizacao";
 
 function RotaProtegida({
   children,
   funcoesPermitidas = [],
 }) {
-  const usuario = JSON.parse(
-    localStorage.getItem("garcom")
-  );
+  const { usuario, carregando } = useContext(AuthContext);
 
-  if (!usuario) {
-    return <Navigate to="/login" replace />;
+  if (carregando) {
+    return <p>Validando sessão...</p>;
   }
 
-  if (
-    funcoesPermitidas.length > 0 &&
-    !funcoesPermitidas.includes(usuario.funcao)
-  ) {
+  if (!usuario) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!podeAcessar(usuario, funcoesPermitidas)) {
     return <Navigate to="/" replace />;
   }
 

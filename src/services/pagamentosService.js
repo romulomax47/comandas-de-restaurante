@@ -17,17 +17,21 @@ export async function registrarPagamento({
    valor,
    forma,
 }) {
-   const { data, error } = await supabase
-      .from("pagamentos")
-      .insert({
-         comanda_id: comandaId,
-         valor,
-         forma,
-      })
-      .select()
-      .single();
+   const { data, error } = await supabase.rpc("registrar_pagamento_atomico", {
+      p_comanda_id: comandaId,
+      p_valor: valor,
+      p_forma: forma,
+   });
 
    if (error) throw error;
 
    return data;
+}
+
+export async function finalizarComanda(comandaId, forma) {
+   const { error } = await supabase.rpc("finalizar_comanda_atomico", {
+      p_comanda_id: comandaId,
+      p_forma: forma,
+   });
+   if (error) throw error;
 }

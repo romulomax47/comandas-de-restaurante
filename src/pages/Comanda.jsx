@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { abrirComanda } from "../services/comandasService";
+import { abrirComanda, lancarPedido } from "../services/comandasService";
 import ListaProdutos from "../components/ListaProdutos";
 import ResumoComanda from "../components/ResumoComanda";
 import { listarItensDaComanda } from "../services/itensService";
-import { criarLancamento } from "../services/lancamentosService";
-import { gerarTicket } from "../services/impressaoService";
 import { solicitarFechamento } from "../services/comandasService";
+import { AuthContext } from "../contexts/AuthContextObject";
 
 
 
@@ -25,7 +24,7 @@ function Comanda() {
    const [mesa, setMesa] = useState(null);
 
 
-   const garcom = JSON.parse(localStorage.getItem("garcom"));
+   const { usuario: garcom } = useContext(AuthContext);
 
    const totalNovoPedido = itensPedido.reduce(
       (soma, item) => soma + Number(item.preco) * item.quantidade,
@@ -113,8 +112,6 @@ function Comanda() {
       try {
          const itens = await listarItensDaComanda(comandaId);
 
-         console.log("ITENS DA COMANDA:", itens);
-
          setItensLancados(itens);
       } catch (error) {
          console.error("Erro ao carregar itens:", error);
@@ -127,88 +124,13 @@ function Comanda() {
          return;
       }
 
-      const lancamento = await criarLancamento(
-         comanda.id,
-         garcom.id
-      );
-
-      const itensCozinha = itensPedido.filter(
-         (item) => item.setor === "cozinha"
-      );
-
-      const itensBar = itensPedido.filter(
-         (item) => item.setor === "bar"
-      );
-
-      const ticketCozinha = gerarTicket({
-         setor: "cozinha",
-         numeroMesa: mesaId,
-         lancamento,
-         garcom,
-         itens: itensCozinha,
-      });
-
-      const ticketBar = gerarTicket({
-         setor: "bar",
-         numeroMesa: mesaId,
-         lancamento,
-         garcom,
-         itens: itensBar,
-      });
-
-      console.log("TICKET COZINHA:");
-      console.log(ticketCozinha);
-
-      console.log("TICKET BAR:");
-      console.log(ticketBar);
-
-      const itensParaSalvar = itensPedido.map((item) => ({
-         comanda_id: comanda.id,
-         lancamento_id: lancamento.id,
-         produto_id: item.id,
-         quantidade: item.quantidade,
-         preco_unitario: Number(item.preco),
-         status: "novo",
-         lancado_por: garcom.id,
-      }));
-      const { error: erroItens } = await supabase
-         .from("itens_pedido")
-         .insert(itensParaSalvar);
-
-      if (erroItens) {
-         console.error("Erro ao salvar itens:", erroItens);
-         alert("Não foi possível lançar os itens.");
+      let comandaAtualizada;
+      try {
+         comandaAtualizada = await lancarPedido(comanda.id, itensPedido);
+      } catch (error) {
+         console.error("Erro ao lançar pedido:", error);
+         setMensagem("Não foi possível lançar os itens.");
          return;
-      }
-
-      const novoTotal =
-         Number(comanda.total ?? 0) + totalNovoPedido;
-
-      const { data: comandaAtualizada, error: erroComanda } =
-         await supabase
-            .from("comandas")
-            .update({
-               total: novoTotal,
-            })
-            .eq("id", comanda.id)
-            .select()
-            .single();
-
-      if (erroComanda) {
-         console.error("Erro ao atualizar comanda:", erroComanda);
-         return;
-      }
-
-      const { error: erroMesa } = await supabase
-         .from("mesas")
-         .update({
-            status: "ocupada",
-            comanda_ativa_id: comanda.id,
-         })
-         .eq("id", mesaId);
-
-      if (erroMesa) {
-         console.error("Erro ao atualizar mesa:", erroMesa);
       }
 
       setComanda(comandaAtualizada);
@@ -222,7 +144,7 @@ function Comanda() {
    useEffect(() => {
       async function iniciar() {
          if (!garcom) {
-            navigate("/login");
+            navigate("/");
             return;
          }
 
@@ -241,10 +163,7 @@ function Comanda() {
 
             setMesa(mesaEncontrada);
 
-            const dadosComanda = await abrirComanda(
-               mesaEncontrada.id,
-               garcom.id
-            );
+            const dadosComanda = await abrirComanda(mesaEncontrada.id);
 
             setComanda(dadosComanda);
             //Carrega produtos ativos
@@ -271,7 +190,7 @@ function Comanda() {
 
       iniciar();
 
-   }, [mesaId]);
+   }, [mesaId, garcom, navigate]);
 
    if (carregando) {
       return (
@@ -287,20 +206,7 @@ function Comanda() {
       }
 
       try {
-         console.log("RESUMO DA CONTA");
-
-         console.log({
-            mesa: mesa.numero,
-            comanda: comanda.id,
-            itens: itensLancados,
-            total: comanda.total,
-            garcom: garcom?.nome,
-         });
-
-         await solicitarFechamento(
-            comanda.id,
-            mesa.id
-         );
+         await solicitarFechamento(comanda.id);
 
          setComanda({
             ...comanda,

@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { buscarOuCriarMesa } from "../services/mesasService";
+import { AuthContext } from "../contexts/AuthContextObject";
 
 function Home() {
 
   const navigate = useNavigate();
-  const garcom = JSON.parse(localStorage.getItem("garcom"));
+  const { usuario: garcom, sair } = useContext(AuthContext);
 
   const [numeroMesa, setNumeroMesa] = useState("");
   const [buscandoMesa, setBuscandoMesa] = useState(false);
@@ -41,7 +42,7 @@ function Home() {
   return (
     <section className="acesso-mesa-pdv">
       <div className="usuario-logado">
-        <span>Garçom</span>
+        <span>Usuário</span>
         <strong>{garcom?.nome}</strong>
       </div>
 
@@ -101,9 +102,9 @@ function Home() {
 
       <button
         type="button"
-        onClick={() => {
-          localStorage.removeItem("garcom");
-          navigate("/login");
+        onClick={async () => {
+          await sair();
+          navigate("/");
         }}
       >
         Sair
